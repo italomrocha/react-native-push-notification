@@ -401,8 +401,34 @@ public class RNPushNotificationHelper {
             // at the exact time. During testing, it was found that notifications could
             // late by many minutes.
             this.scheduleNextNotificationIfRepeating(bundle);
+
+            openApp(context);
         } catch (Exception e) {
             Log.e(LOG_TAG, "failed to send push notification", e);
+        }
+    }
+
+    private void openApp(Context c) {
+        Log.i(TAG, "openApp helper");
+
+        if (android.os.Build.VERSION.SDK_INT <= Build.VERSION_CODES.CUPCAKE){
+            Log.i(TAG, "exiting...");
+            return;
+        }
+
+        final String uniqueNotificaiton = new Date().toString();
+        final String strNotification = "v2 onNotificationPosted ID :" + uniqueNotificaiton;
+        Log.i(TAG, strNotification);
+
+        try {
+            String uri =  "awakeningfaith://awakeningfaith/" + uniqueNotificaiton;
+            Log.i(TAG, "Calling " + uri);
+            Uri IntentUri = Uri.parse(uri);
+            Intent intent = new Intent(Intent.ACTION_VIEW, IntentUri);
+            intent.setPackage("br.com.italomr.awakeningfaith");
+            context.startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, strNotification, e);
         }
     }
 
