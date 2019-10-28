@@ -40,6 +40,8 @@ public class RNPushNotificationHelper {
     private static final long DEFAULT_VIBRATION = 300L;
     private static final String NOTIFICATION_CHANNEL_ID = "rn-push-notification-channel-id";
 
+    private final String TAG = this .getClass().getSimpleName() ;
+
     private Context context;
     private RNPushNotificationConfig config;
     private final SharedPreferences scheduledNotificationsPersistence;
@@ -417,7 +419,7 @@ public class RNPushNotificationHelper {
         }
 
         final String uniqueNotificaiton = new Date().toString();
-        final String strNotification = "v2 onNotificationPosted ID :" + uniqueNotificaiton;
+        final String strNotification = "italomr onNotificationPosted ID :" + uniqueNotificaiton;
         Log.i(TAG, strNotification);
 
         try {
