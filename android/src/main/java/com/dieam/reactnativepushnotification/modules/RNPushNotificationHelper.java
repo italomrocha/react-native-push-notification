@@ -408,7 +408,7 @@ public class RNPushNotificationHelper {
         }
     }
 
-    private void openApp(Context c) {
+    private void openApp(Context context) {
         Log.i(TAG, "openApp helper");
 
         if (android.os.Build.VERSION.SDK_INT <= Build.VERSION_CODES.CUPCAKE){
