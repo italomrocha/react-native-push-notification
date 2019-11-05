@@ -72,13 +72,13 @@ public class RNPushNotificationHelper {
     }
 
     private PendingIntent toScheduleNotificationIntent(Bundle bundle) {
-        int notificationID = Integer.parseInt(bundle.getString("id"));
+        int notificationId = bundle.getInt("id", 0);
 
         Intent notificationIntent = new Intent(context, RNPushNotificationPublisher.class);
-        notificationIntent.putExtra(RNPushNotificationPublisher.NOTIFICATION_ID, notificationID);
+        notificationIntent.putExtra(RNPushNotificationPublisher.NOTIFICATION_ID, notificationId);
         notificationIntent.putExtras(bundle);
 
-        return PendingIntent.getBroadcast(context, notificationID, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        return PendingIntent.getBroadcast(context, notificationId, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     public void sendNotificationScheduled(Bundle bundle) {
@@ -93,7 +93,7 @@ public class RNPushNotificationHelper {
             return;
         }
 
-        if (bundle.getString("id") == null) {
+        if (bundle.getInt("id", 0) == 0) {
             Log.e(LOG_TAG, "No notification ID specified for the scheduled notification");
             return;
         }
@@ -105,13 +105,15 @@ public class RNPushNotificationHelper {
         }
 
         RNPushNotificationAttributes notificationAttributes = new RNPushNotificationAttributes(bundle);
-        String id = notificationAttributes.getId();
+        String id = String.valueOf(notificationAttributes.getId());
 
         Log.d(LOG_TAG, "Storing push notification with id " + id);
 
         SharedPreferences.Editor editor = scheduledNotificationsPersistence.edit();
         editor.putString(id, notificationAttributes.toJson().toString());
         commit(editor);
+
+        Log.d(LOG_TAG, "Stored notification " + notificationAttributes.toJson().toString());
 
         boolean isSaved = scheduledNotificationsPersistence.contains(id);
         if (!isSaved) {
@@ -129,7 +131,7 @@ public class RNPushNotificationHelper {
         PendingIntent pendingIntent = toScheduleNotificationIntent(bundle);
 
         Log.d(LOG_TAG, String.format("Setting a notification with id %s at time %s",
-                bundle.getString("id"), Long.toString(fireDate)));
+                bundle.getInt("id"), Long.toString(fireDate)));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             getAlarmManager().setExact(AlarmManager.RTC_WAKEUP, fireDate, pendingIntent);
         } else {
@@ -151,11 +153,13 @@ public class RNPushNotificationHelper {
                 return;
             }
 
-            String notificationIdString = bundle.getString("id");
-            if (notificationIdString == null) {
+            int notificationId = bundle.getInt("id", 0);
+            if (notificationId == 0) {
                 Log.e(LOG_TAG, "No notification ID specified for the notification");
                 return;
             }
+
+            String notificationIdString = String.valueOf(notificationId);
 
             Resources res = context.getResources();
             String packageName = context.getPackageName();
@@ -322,9 +326,7 @@ public class RNPushNotificationHelper {
                 }
             }
 
-            int notificationID = Integer.parseInt(notificationIdString);
-
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, notificationID, intent,
+            PendingIntent pendingIntent = PendingIntent.getActivity(context, notificationId, intent,
                     PendingIntent.FLAG_UPDATE_CURRENT);
 
             NotificationManager notificationManager = notificationManager();
@@ -368,7 +370,7 @@ public class RNPushNotificationHelper {
                     bundle.putString("action", action);
                     actionIntent.putExtra("notification", bundle);
 
-                    PendingIntent pendingActionIntent = PendingIntent.getActivity(context, notificationID, actionIntent,
+                    PendingIntent pendingActionIntent = PendingIntent.getActivity(context, notificationId, actionIntent,
                             PendingIntent.FLAG_UPDATE_CURRENT);
                     notification.addAction(icon, action, pendingActionIntent);
                 }
@@ -393,9 +395,9 @@ public class RNPushNotificationHelper {
 
             if (bundle.containsKey("tag")) {
                 String tag = bundle.getString("tag");
-                notificationManager.notify(tag, notificationID, info);
+                notificationManager.notify(tag, notificationId, info);
             } else {
-                notificationManager.notify(notificationID, info);
+                notificationManager.notify(notificationId, info);
             }
 
             // Can't use setRepeating for recurring notifications because setRepeating
@@ -404,29 +406,32 @@ public class RNPushNotificationHelper {
             // late by many minutes.
             this.scheduleNextNotificationIfRepeating(bundle);
 
-            openApp(context);
+            openApp(context, notificationId);
         } catch (Exception e) {
             Log.e(LOG_TAG, "failed to send push notification", e);
         }
     }
 
-    private void openApp(Context context) {
+    private void openApp(Context context, int notificationId) {
         Log.i(TAG, "openApp helper");
 
-        if (android.os.Build.VERSION.SDK_INT <= Build.VERSION_CODES.CUPCAKE){
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.CUPCAKE){
             Log.i(TAG, "exiting...");
             return;
         }
 
-        final String uniqueNotificaiton = new Date().toString();
-        final String strNotification = "italomr onNotificationPosted ID :" + uniqueNotificaiton;
+        final String strNotification = "italomr onNotificationPosted ID :" + notificationId;
         Log.i(TAG, strNotification);
 
         try {
-            String uri =  "awakeningfaith://awakeningfaith/" + uniqueNotificaiton;
+            String uri =  "awakeningfaith://awakeningfaith/" + notificationId;
             Log.i(TAG, "Calling " + uri);
             Uri IntentUri = Uri.parse(uri);
             Intent intent = new Intent(Intent.ACTION_VIEW, IntentUri);
+
+            //AndroidRuntimeException: Calling startActivity() from outside of an Activity  context requires the FLAG_ACTIVITY_NEW_TASK flag. Is this really what you want?
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
             intent.setPackage("br.com.italomr.awakeningfaith");
             context.startActivity(intent);
         } catch (Exception e) {
@@ -498,7 +503,7 @@ public class RNPushNotificationHelper {
             // Sanity check, should never happen
             if (newFireDate != 0) {
                 Log.d(LOG_TAG, String.format("Repeating notification with id %s at time %s",
-                        bundle.getString("id"), Long.toString(newFireDate)));
+                        bundle.getInt("id"), Long.toString(newFireDate)));
                 bundle.putDouble("fireDate", newFireDate);
                 this.sendNotificationScheduled(bundle);
             }
@@ -512,29 +517,34 @@ public class RNPushNotificationHelper {
         notificationManager.cancelAll();
     }
 
-    public void clearNotification(int notificationID) {
-        Log.i(LOG_TAG, "Clearing notification: " + notificationID);
+    public void clearNotification(int notificationId) {
+        Log.i(LOG_TAG, "Clearing notification: " + notificationId);
 
         NotificationManager notificationManager = notificationManager();
-        notificationManager.cancel(notificationID);
+        notificationManager.cancel(notificationId);
     }
 
     public void cancelAllScheduledNotifications() {
         Log.i(LOG_TAG, "Cancelling all notifications");
 
         for (String id : scheduledNotificationsPersistence.getAll().keySet()) {
-            cancelScheduledNotification(id);
+            cancelScheduledNotification(Integer.parseInt(id));
         }
     }
 
     public void cancelScheduledNotification(ReadableMap userInfo) {
         for (String id : scheduledNotificationsPersistence.getAll().keySet()) {
+            Log.i(LOG_TAG, "Is to cancelScheduledNotification id? " + id);
             try {
+                if (id == null) {
+                    continue;
+                }
+
                 String notificationAttributesJson = scheduledNotificationsPersistence.getString(id, null);
                 if (notificationAttributesJson != null) {
                     RNPushNotificationAttributes notificationAttributes = fromJson(notificationAttributesJson);
                     if (notificationAttributes.matches(userInfo)) {
-                        cancelScheduledNotification(id);
+                        cancelScheduledNotification(Integer.parseInt(id));
                     }
                 }
             } catch (JSONException e) {
@@ -543,27 +553,29 @@ public class RNPushNotificationHelper {
         }
     }
 
-    private void cancelScheduledNotification(String notificationIDString) {
-        Log.i(LOG_TAG, "Cancelling notification: " + notificationIDString);
+    private void cancelScheduledNotification(int notificationId) {
+        Log.i(LOG_TAG, "Cancelling notification: " + notificationId);
 
         // remove it from the alarm manger schedule
         Bundle b = new Bundle();
-        b.putString("id", notificationIDString);
+        b.putInt("id", notificationId);
         getAlarmManager().cancel(toScheduleNotificationIntent(b));
 
-        if (scheduledNotificationsPersistence.contains(notificationIDString)) {
+        String notificationIdString = String.valueOf(notificationId);
+
+        if (scheduledNotificationsPersistence.contains(notificationIdString)) {
             // remove it from local storage
             SharedPreferences.Editor editor = scheduledNotificationsPersistence.edit();
-            editor.remove(notificationIDString);
+            editor.remove(notificationIdString);
             commit(editor);
         } else {
-            Log.w(LOG_TAG, "Unable to find notification " + notificationIDString);
+            Log.w(LOG_TAG, "Unable to find notification " + notificationId);
         }
 
         // removed it from the notification center
         NotificationManager notificationManager = notificationManager();
 
-        notificationManager.cancel(Integer.parseInt(notificationIDString));
+        notificationManager.cancel(notificationId);
     }
 
     private NotificationManager notificationManager() {
@@ -630,3 +642,4 @@ public class RNPushNotificationHelper {
         channelCreated = true;
     }
 }
+

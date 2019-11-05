@@ -37,7 +37,7 @@ public class RNPushNotificationAttributes {
     private static final String REPEAT_TIME = "repeatTime";
     private static final String ONGOING = "ongoing";
 
-    private final String id;
+    private final int id;
     private final String message;
     private final double fireDate;
     private final String title;
@@ -62,7 +62,7 @@ public class RNPushNotificationAttributes {
     private final boolean ongoing;
 
     public RNPushNotificationAttributes(Bundle bundle) {
-        id = bundle.getString(ID);
+        id = bundle.getInt(ID, 0);
         message = bundle.getString(MESSAGE);
         fireDate = bundle.getDouble(FIRE_DATE);
         title = bundle.getString(TITLE);
@@ -89,7 +89,7 @@ public class RNPushNotificationAttributes {
 
     private RNPushNotificationAttributes(JSONObject jsonObject) {
         try {
-            id = jsonObject.has(ID) ? jsonObject.getString(ID) : null;
+            id = jsonObject.has(ID) ? jsonObject.getInt(ID) : null;
             message = jsonObject.has(MESSAGE) ? jsonObject.getString(MESSAGE) : null;
             fireDate = jsonObject.has(FIRE_DATE) ? jsonObject.getDouble(FIRE_DATE) : 0.0;
             title = jsonObject.has(TITLE) ? jsonObject.getString(TITLE) : null;
@@ -152,7 +152,8 @@ public class RNPushNotificationAttributes {
                     break;
                 }
                 case Number: {
-                    if ((userInfo.getDouble(key) != bundle.getDouble(key)) && (userInfo.getInt(key) != bundle.getInt(key)))
+                    //if ((userInfo.getDouble(key) != bundle.getDouble(key)) && (userInfo.getInt(key) != bundle.getInt(key)))
+                    if (userInfo.getInt(key) != bundle.getInt(key))
                         return false;
                     break;
                 }
@@ -173,7 +174,7 @@ public class RNPushNotificationAttributes {
 
     public Bundle toBundle() {
         Bundle bundle = new Bundle();
-        bundle.putString(ID, id);
+        bundle.putInt(ID, id);
         bundle.putString(MESSAGE, message);
         bundle.putDouble(FIRE_DATE, fireDate);
         bundle.putString(TITLE, title);
@@ -263,7 +264,7 @@ public class RNPushNotificationAttributes {
                 '}';
     }
 
-    public String getId() {
+    public int getId() {
         return id;
     }
 
@@ -272,3 +273,4 @@ public class RNPushNotificationAttributes {
     }
 
 }
+

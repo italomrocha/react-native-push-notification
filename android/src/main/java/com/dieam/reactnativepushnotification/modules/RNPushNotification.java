@@ -114,7 +114,7 @@ public class RNPushNotification extends ReactContextBaseJavaModule implements Ac
 
                 // Dismiss the notification popup.
                 NotificationManager manager = (NotificationManager) context.getSystemService(context.NOTIFICATION_SERVICE);
-                int notificationID = Integer.parseInt(bundle.getString("id"));
+                int notificationID = bundle.getInt("id");
                 manager.cancel(notificationID);
             }
         }, intentFilter);
@@ -148,22 +148,37 @@ public class RNPushNotification extends ReactContextBaseJavaModule implements Ac
 
     @ReactMethod
     public void presentLocalNotification(ReadableMap details) {
-        Bundle bundle = Arguments.toBundle(details);
-        // If notification ID is not provided by the user, generate one at random
-        if (bundle.getString("id") == null) {
-            bundle.putString("id", String.valueOf(mRandomNumberGenerator.nextInt()));
-        }
+        Bundle bundle = prepareBundle(details);
         mRNPushNotificationHelper.sendToNotificationCentre(bundle);
     }
 
     @ReactMethod
     public void scheduleLocalNotification(ReadableMap details) {
-        Bundle bundle = Arguments.toBundle(details);
-        // If notification ID is not provided by the user, generate one at random
-        if (bundle.getString("id") == null) {
-            bundle.putString("id", String.valueOf(mRandomNumberGenerator.nextInt()));
-        }
+        Bundle bundle = prepareBundle(details);
         mRNPushNotificationHelper.sendNotificationScheduled(bundle);
+    }
+
+    public Bundle prepareBundle(ReadableMap details) {
+        Bundle bundle = Arguments.toBundle(details);
+
+        Integer id = null;
+        try {
+            Double idDouble = bundle.getDouble("id");
+            if (idDouble != null) {
+                id = idDouble.intValue();
+            }
+        } catch (Exception e) {
+
+        }
+
+        // If notification ID is not provided by the user, generate one at random
+        if (id == null) {
+            id = mRandomNumberGenerator.nextInt();
+        }
+
+        bundle.putInt("id", id);
+
+        return bundle;
     }
 
     @ReactMethod
@@ -229,3 +244,4 @@ public class RNPushNotification extends ReactContextBaseJavaModule implements Ac
         registerNotificationsReceiveNotificationActions(actions);
     }
 }
+
