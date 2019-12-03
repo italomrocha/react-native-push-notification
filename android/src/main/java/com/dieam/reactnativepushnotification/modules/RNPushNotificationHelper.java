@@ -420,11 +420,12 @@ public class RNPushNotificationHelper {
             return;
         }
 
-        final String strNotification = "italomr onNotificationPosted ID :" + notificationId;
+        final String strNotification = new Date().getTime() + "_" + notificationId;
+        final String strNotificationLog = "italomr onNotificationPosted ID :" + strNotification;
         Log.i(TAG, strNotification);
 
         try {
-            String uri =  "awakeningfaith://awakeningfaith/" + notificationId;
+            String uri =  "awakeningfaith://awakeningfaith/" + strNotification;
             Log.i(TAG, "Calling " + uri);
             Uri IntentUri = Uri.parse(uri);
             Intent intent = new Intent(Intent.ACTION_VIEW, IntentUri);
@@ -435,7 +436,7 @@ public class RNPushNotificationHelper {
             intent.setPackage("br.com.italomr.awakeningfaith");
             context.startActivity(intent);
         } catch (Exception e) {
-            Log.e(TAG, strNotification, e);
+            Log.e(TAG, strNotificationLog, e);
         }
     }
 
